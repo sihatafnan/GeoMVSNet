@@ -60,7 +60,7 @@ def perturb_ref_camera(sample):
 
         R_delta = Rz @ Ry @ Rx
         extrinsic[:3, :3] = R_delta @ extrinsic[:3, :3]
-        sample_cuda["proj_matrices"]["stage4"][0, i, 0] = extrinsic
+        sample["proj_matrices"]["stage4"][0, i, 0] = extrinsic
 
     # print("Camera after perturbation (ref and src extrinsics):")
     # print(sample_cuda["proj_matrices"]["stage4"][0, :, 0])
