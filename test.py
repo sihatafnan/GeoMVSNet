@@ -73,6 +73,7 @@ def test():
         for batch_idx, sample in enumerate(TestImgLoader):
             if args.attack:
                 sample = perturb_ref_camera(sample)
+                args.outdir += "_attack"
             sample_cuda = tocuda(sample)
             start_time = time.time()
 
