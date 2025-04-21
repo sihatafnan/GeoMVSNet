@@ -65,4 +65,7 @@ def get_opts():
     parser.add_argument('--pin_m', action='store_true', help='data loader pin memory')
     parser.add_argument("--local_rank", type=int, default=0)
 
+    parser.add_argument('--attack', action='store_true', help='Apply adversarial perturbation to camera extrinsics')
+
+
     return parser.parse_args()
