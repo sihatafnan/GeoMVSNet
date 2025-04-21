@@ -24,7 +24,9 @@ from models.utils.opts import get_opts
 cudnn.benchmark = True
 
 args = get_opts()
-
+if args.attack:
+  args.outdir += "_attack"
+  
 def perturb_ref_camera(sample):
     # print("Camera before perturbation (ref and src extrinsics):")
     extrinsics = sample["proj_matrices"]["stage4"][0, :, 0]  # All extrinsics in this batch
@@ -73,7 +75,7 @@ def test():
         for batch_idx, sample in enumerate(TestImgLoader):
             if args.attack:
                 sample = perturb_ref_camera(sample)
-                args.outdir += "_attack"
+                
             sample_cuda = tocuda(sample)
             start_time = time.time()
 
