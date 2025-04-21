@@ -1,7 +1,7 @@
-torch==1.10.0
+torch
 torchvision
 opencv-python
-numpy==1.18.1
+numpy
 pillow
 scipy
 tensorboardX
