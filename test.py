@@ -25,11 +25,54 @@ cudnn.benchmark = True
 
 args = get_opts()
 
+def perturb_ref_camera(sample):
+    # print("Camera before perturbation (ref and src extrinsics):")
+    extrinsics = sample["proj_matrices"]["stage4"][0, :, 0]  # All extrinsics in this batch
+    # print(extrinsics)
+
+    for i in range(extrinsics.shape[0]):
+        extrinsic = extrinsics[i]
+        extrinsic[0, 3] += 5
+        extrinsic[1, 3] -= 10
+        extrinsic[2, 3] += 12
+
+        d_roll = torch.tensor(1, dtype=torch.float32, device=extrinsic.device)
+        d_pitch = torch.tensor(-2, dtype=torch.float32, device=extrinsic.device)
+        d_yaw = torch.tensor(1.5, dtype=torch.float32, device=extrinsic.device)
+
+        Rx = torch.tensor([
+            [1, 0, 0],
+            [0, torch.cos(d_roll), -torch.sin(d_roll)],
+            [0, torch.sin(d_roll), torch.cos(d_roll)]
+        ], dtype=torch.float32, device=extrinsic.device)
+
+        Ry = torch.tensor([
+            [torch.cos(d_pitch), 0, torch.sin(d_pitch)],
+            [0, 1, 0],
+            [-torch.sin(d_pitch), 0, torch.cos(d_pitch)]
+        ], dtype=torch.float32, device=extrinsic.device)
+
+        Rz = torch.tensor([
+            [torch.cos(d_yaw), -torch.sin(d_yaw), 0],
+            [torch.sin(d_yaw), torch.cos(d_yaw), 0],
+            [0, 0, 1]
+        ], dtype=torch.float32, device=extrinsic.device)
+
+        R_delta = Rz @ Ry @ Rx
+        extrinsic[:3, :3] = R_delta @ extrinsic[:3, :3]
+        sample_cuda["proj_matrices"]["stage4"][0, i, 0] = extrinsic
+
+    # print("Camera after perturbation (ref and src extrinsics):")
+    # print(sample_cuda["proj_matrices"]["stage4"][0, :, 0])
+
+    return sample
 
 def test():
     total_time = 0
     with torch.no_grad():
         for batch_idx, sample in enumerate(TestImgLoader):
+            if args.attack:
+                sample = perturb_ref_camera(sample)
             sample_cuda = tocuda(sample)
             start_time = time.time()
 
