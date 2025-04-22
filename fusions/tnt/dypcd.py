@@ -37,6 +37,8 @@ parser.add_argument('--img_mode', type=str, default='resize', choices=['resize',
 parser.add_argument('--dist_base', type=float, default=1 / 4)
 parser.add_argument('--rel_diff_base', type=float, default=1 / 1300)
 
+parser.add_argument('--attack', action='store_true', help='Apply perturbation to camera extrinsics')
+
 args = parser.parse_args()
 
 
@@ -127,13 +129,44 @@ def read_camera_parameters(filename):
     with open(filename) as f:
         lines = f.readlines()
         lines = [line.rstrip() for line in lines]
-    # extrinsics: line [1,5), 4x4 matrix
+
     extrinsics = np.fromstring(' '.join(lines[1:5]), dtype=np.float32, sep=' ').reshape((4, 4))
-    # intrinsics: line [7-10), 3x3 matrix
     intrinsics = np.fromstring(' '.join(lines[7:10]), dtype=np.float32, sep=' ').reshape((3, 3))
-    # TODO: assume the feature is 1/4 of the original image size
-    # intrinsics[:2, :] /= 4
+
+    if args.attack:
+        # Translation perturbation
+        extrinsics[0, 3] += 5.0
+        extrinsics[1, 3] -= 10.0
+        extrinsics[2, 3] += 12.0
+
+        # Rotation perturbation
+        d_roll = np.deg2rad(1)
+        d_pitch = np.deg2rad(-2)
+        d_yaw = np.deg2rad(1.5)
+
+        Rx = np.array([
+            [1, 0, 0],
+            [0, np.cos(d_roll), -np.sin(d_roll)],
+            [0, np.sin(d_roll), np.cos(d_roll)]
+        ])
+
+        Ry = np.array([
+            [np.cos(d_pitch), 0, np.sin(d_pitch)],
+            [0, 1, 0],
+            [-np.sin(d_pitch), 0, np.cos(d_pitch)]
+        ])
+
+        Rz = np.array([
+            [np.cos(d_yaw), -np.sin(d_yaw), 0],
+            [np.sin(d_yaw), np.cos(d_yaw), 0],
+            [0, 0, 1]
+        ])
+
+        R_delta = Rz @ Ry @ Rx
+        extrinsics[:3, :3] = R_delta @ extrinsics[:3, :3]
+
     return intrinsics, extrinsics
+
 
 
 # read a pair file, [(ref_view1, [src_view1-1, ...]), (ref_view2, [src_view2-1, ...]), ...]
